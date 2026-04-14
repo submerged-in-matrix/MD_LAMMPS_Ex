@@ -50,5 +50,5 @@ run             10000
 # Hold at 500 K
 unfix           1
 fix             1 all npt temp 500 500 0.1 iso 0.0 0.0 1.0
-run             50000
+run             100000
 print "T=500K vol=$(vol) lx=$(lx) density=$(density) pe=$(pe)"
