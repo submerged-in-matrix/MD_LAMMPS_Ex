@@ -1,0 +1,21 @@
+# Copper with LJ (its wrong, but to demonstrate)
+units		metal				#energy in eV, distance in Å, time in ps, temperature in K
+atom_style	atomic
+boundary	p p p
+
+lattice		fcc 3.615
+region		box block 0 4 0 4 0 4
+create_box	1 box
+create_atoms	1 box
+mass		1 63.546
+
+pair_style	lj/cut 8.0
+pair_coeff	1 1 0.415 2.277 8.0		# LJ parameters fitted to copper (ε=0.415 eV, σ=2.277 Å)
+
+velocity	all create 300 12345 dist gaussian
+fix		1 all nvt temp 300 300 0.1	#Nosé-Hoover thermostat
+timestep	0.001
+
+thermo		100
+thermo_style	custom step temp pe ke etotal press vol density
+run		5000

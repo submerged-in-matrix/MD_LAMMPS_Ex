@@ -1,0 +1,54 @@
+# Copper thermal expansion - multi-temperature NPT
+units           metal
+atom_style      atomic
+boundary        p p p
+
+# Build system
+lattice         fcc 3.615
+region          box block 0 5 0 5 0 5
+create_box      1 box
+create_atoms    1 box
+mass            1 63.546
+
+# Force field
+pair_style      eam
+pair_coeff      1 1 Cu_u3.eam
+
+# Minimize first (THE RULE)
+minimize		1.0e-6 1.0e-8 1000 10000								#stop when energy change < 1.0e-4, or force < 1.0e-6, or 1000 iterations, or 10000 force evaluations — whichever comes first.
+
+# Reset before dynamics
+reset_timestep	0
+velocity		all create 100 12345 dist gaussian mom yes rot yes		#'mom yes rot yes'-zero out total linear and angular momentum. Prevents the box from drifting.
+
+# NPT at 100 K
+fix				1 all npt temp 100 300 0.1 iso 0.0 0.0 1.0				#isotropic pressure coupling at 0 bar. The 1.0 is Pdamp in ps.
+timestep		0.001
+thermo			500
+thermo_style	custom step temp pe ke press vol lx density
+run				10000
+
+# Save final state info
+print "T=100K vol=$(vol) lx=$(lx) density=$(density) pe=$(pe)"
+
+# Ramp to 300 K
+unfix			1
+fix				1 all npt temp 300 500 0.1 iso 0.0 0.0 1.0
+run				10000
+
+# Hold at 300 K
+unfix			1
+fix				1 all npt temp 300 300 0.1 iso 0.0 0.0 1.0
+run				50000
+print "T=300K vol=$(vol) lx=$(lx) density=$(density) pe=$(pe)"
+
+# Ramp to 500 K
+unfix           1
+fix             1 all npt temp 300 500 0.1 iso 0.0 0.0 1.0
+run             10000
+
+# Hold at 500 K
+unfix           1
+fix             1 all npt temp 500 500 0.1 iso 0.0 0.0 1.0
+run             50000
+print "T=500K vol=$(vol) lx=$(lx) density=$(density) pe=$(pe)"
