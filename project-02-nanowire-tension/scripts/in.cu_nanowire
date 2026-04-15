@@ -1,0 +1,55 @@
+# ============================================
+# Project 2: Tensile Test of Copper Nanowire
+# ============================================
+
+units           metal
+atom_style      atomic
+boundary        s s p
+
+# --- BUILD NANOWIRE ---
+lattice         fcc 3.615 orient x 1 0 0 orient y 0 1 0 orient z 0 0 1
+region          bigbox block -10 10 -10 10 0 12 units lattice
+create_box      1 bigbox
+region          wire cylinder z 0 0 5 0 12 units lattice
+create_atoms    1 region wire
+mass            1 63.546
+
+# --- FORCE FIELD ---
+pair_style      eam
+pair_coeff      1 1 Cu_u3.eam
+
+# --- MINIMIZE (let surface atoms relax) ---
+minimize        1.0e-6 1.0e-8 1000 10000
+reset_timestep  0
+
+# --- EQUILIBRATE at 300 K (20 ps) ---
+velocity        all create 300 12345 dist gaussian mom yes rot yes
+fix             1 all nvt temp 300 300 0.1
+timestep        0.001
+thermo          500
+thermo_style    custom step temp pe press pzz lz
+run             20000
+
+# --- TENSILE DEFORMATION ---
+unfix           1
+reset_timestep  0
+fix             1 all nvt temp 300 300 0.1
+
+variable        tmp equal lz
+variable        lz0 equal ${tmp}
+variable        strain equal (lz-v_lz0)/v_lz0
+variable        stress_GPa equal -pzz/10000
+
+fix             2 all deform 1 z erate 0.001 units box remap x
+
+compute         peratom all pe/atom
+
+fix             3 all ave/time 1 100 100 v_strain v_stress_GPa file ../outputs/stress_strain.dat
+
+dump            1 all custom 2000 ../outputs/dump.tension.* id type x y z c_peratom
+dump_modify     1 sort id
+
+thermo          2000
+thermo_style    custom step temp v_strain v_stress_GPa pe lz press
+
+run             200000
