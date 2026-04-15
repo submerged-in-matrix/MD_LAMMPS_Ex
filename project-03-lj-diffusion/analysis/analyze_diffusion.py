@@ -72,7 +72,7 @@ ax.grid(True, alpha=0.3)
 # Right: log-log plot (shows ballistic -> diffusive crossover)
 ax = axes[1]
 # Skip first point if MSD is zero/tiny
-pos_mask = (time > 0) & (msd > 0)
+pos_mask = (time > 0.5) & (msd > 0.1)
 ax.loglog(time[pos_mask], msd[pos_mask], 'b-', linewidth=1.5, label='MD data')
 
 # Reference slopes
