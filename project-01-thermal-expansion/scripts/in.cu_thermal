@@ -1,0 +1,53 @@
+# ============================================
+# Thermal Expansion of FCC Copper
+# Parameterized by temperature (pass via -var T value)
+# ============================================
+
+# --- Initialization ---
+units		metal
+atom_style	atomic
+boundary		p p p
+
+# --- system ---
+lattice		fcc 3.615
+region		box block 0 6 0 6 0 6
+create_box	1 box
+create_atoms	1 box
+mass		1 63.546
+
+# --- Force Field ---
+pair_style	eam
+pair_coeff	1 1 Cu_u3.eam
+
+# --- Minimize ---
+minimize	1.0e-6 1.0e-8 1000 10000
+reset_timestep	0
+
+# --- Equilibration ---
+velocity	all create ${T} 12345 dist gaussian mom yes rot yes
+fix			1 all npt temp ${T} ${T} 0.1 iso 0.0 0.0 1.0
+timestep	0.001
+
+thermo		500
+thermo_style	custom step temp pe ke press vol lx density
+
+run			20000
+
+# --- Production (30,000 steps with time averaging) ---
+
+reset_timestep	0
+
+# --- Variables to access TD properties ---
+variable	mylx equal lx
+variable	myvol equal vol
+variable	mype equal pe/atoms
+variable	mydens equal density
+variable	mypress equal press
+
+# --- Time-avg. lx, vol, pe, density, pressure over production ---
+fix		  	avg all ave/time 10 100 1000 v_mylx v_myvol v_mype v_mydens v_mypress &	
+			file ../outputs/ave_${T}K.dat
+run		30000
+
+# Print
+print "RESULT T=${T} lx=$(lx) vol=$(vol) pe_per_atom=$(v_mype) density=$(density) pressure=$(press)"
